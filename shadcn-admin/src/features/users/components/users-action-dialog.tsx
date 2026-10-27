@@ -121,6 +121,47 @@ export function UsersActionDialog({
     setIsSubmitting(true)
     setServerError(null)
 
+    // 1. Client-side uniqueness check for Email against loaded users
+    const existingUsers = queryClient.getQueryData<User[]>(['users']) || []
+    const normalizedEmail = values.email.trim().toLowerCase()
+    const duplicateEmail = existingUsers.find(
+      (u) =>
+        u.email.trim().toLowerCase() === normalizedEmail &&
+        (!isEdit || u.id !== currentRow?.id)
+    )
+
+    if (duplicateEmail) {
+      form.setError('email', {
+        type: 'manual',
+        message: `This email is already in use by ${duplicateEmail.firstName} ${duplicateEmail.lastName}. Email must be unique.`,
+      })
+      setServerError(`Email "${values.email}" is already registered. Please choose a unique email address.`)
+      setIsSubmitting(false)
+      return
+    }
+
+    // 2. Client-side uniqueness check for Phone Number (if provided)
+    if (values.phone && values.phone.trim()) {
+      const cleanPhone = values.phone.replace(/\D/g, '')
+      if (cleanPhone.length >= 7) {
+        const duplicatePhone = existingUsers.find(
+          (u) =>
+            u.phoneNumber &&
+            u.phoneNumber.replace(/\D/g, '') === cleanPhone &&
+            (!isEdit || u.id !== currentRow?.id)
+        )
+        if (duplicatePhone) {
+          form.setError('phone', {
+            type: 'manual',
+            message: `This phone number is already registered to ${duplicatePhone.firstName} ${duplicatePhone.lastName}.`,
+          })
+          setServerError(`Phone number "${values.phone}" is already in use by another user.`)
+          setIsSubmitting(false)
+          return
+        }
+      }
+    }
+
     try {
       if (isEdit && currentRow) {
         const updateData: UpdateUserInput = {
@@ -148,6 +189,12 @@ export function UsersActionDialog({
       await queryClient.invalidateQueries({ queryKey: ['user-stats'] })
       onOpenChange(false)
     } catch (err: any) {
+      if (err?.response?.data?.error?.code === 'DUPLICATE_KEY') {
+        form.setError('email', {
+          type: 'server',
+          message: 'This email is already in use by another account.',
+        })
+      }
       const message =
         err?.response?.data?.error?.message ||
         err?.response?.data?.message ||
@@ -212,7 +259,10 @@ export function UsersActionDialog({
               name='email'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email Address *</FormLabel>
+                  <div className='flex items-center justify-between'>
+                    <FormLabel>Email Address *</FormLabel>
+                    <span className='text-xs text-muted-foreground font-normal'>Must be unique</span>
+                  </div>
                   <FormControl>
                     <Input
                       type='email'
@@ -267,7 +317,7 @@ export function UsersActionDialog({
               name='phone'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Phone Number (Optional)</FormLabel>
+                  <FormLabel>Phone Number (Optional - Unique)</FormLabel>
                   <FormControl>
                     <Input
                       placeholder='e.g. +1 555-0123'

@@ -276,16 +276,39 @@ export const userApi = {
       const res = await apiClient.post<{ data?: AppUser }>('/api/users', input)
       if (res.data?.data) {
         const u = res.data.data
-        return {
+        const created = {
           ...u,
           id: u._id || u.id,
         }
+        const current = getLocalUsers()
+        saveLocalUsers([created, ...current.filter((x) => (x._id || x.id) !== created.id)])
+        return created
       }
-    } catch {
-      // Fallback
+    } catch (err: any) {
+      // If backend responded with an error (400, 409 duplicate email, etc.), rethrow so form can display it
+      if (err?.response?.data) {
+        throw err
+      }
     }
 
     const current = getLocalUsers()
+    const duplicate = current.find(
+      (u) => u.email.trim().toLowerCase() === input.email.trim().toLowerCase()
+    )
+    if (duplicate) {
+      const err: any = new Error('Email already exists')
+      err.response = {
+        data: {
+          error: {
+            code: 'DUPLICATE_KEY',
+            message: 'Email already exists',
+            fields: { email: 'This email is already in use' },
+          },
+        },
+      }
+      throw err
+    }
+
     const newUser: AppUser = {
       _id: `usr_${Date.now()}`,
       id: `usr_${Date.now()}`,

@@ -8,26 +8,16 @@ import { notFoundHandler } from './middleware/notFound';
 export function createApp(): Application {
   const app = express();
 
-  // CORS configuration supporting dynamic Vite dev server ports
+  // CORS configuration supporting dynamic Vite dev server ports & cloud deployments
   app.use(
     cors({
-      origin: (origin, callback) => {
-        if (!origin) return callback(null, true);
-        if (
-          origin === env.CLIENT_ORIGIN ||
-          origin.startsWith('http://localhost:') ||
-          origin.startsWith('http://127.0.0.1:') ||
-          origin.endsWith('.vercel.app')
-        ) {
-          return callback(null, true);
-        }
-        return callback(new Error(`Origin ${origin} not allowed by CORS`));
-      },
+      origin: true,
       credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     })
   );
+  app.options('*', cors());
 
   // Body parser with size limit
   app.use(express.json({ limit: '1mb' }));
