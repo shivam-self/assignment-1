@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Management Dashboard</title>
+    <meta name="description" content="MERN User Management Dashboard with Custom Theming Engine" />
+    <script>
+      (function() {
+        try {
+          var defaultTheme = {
+            presetId: 'blue',
+            buttonColor: null,
+            font: null
+          };
+          var raw = localStorage.getItem('app.theme.v1');
+          var theme = raw ? JSON.parse(raw) : defaultTheme;
+          var presets = {
+            blue: {
+              bg: '#F4F7FB',
+              surface: '#FFFFFF',
+              text: '#0F1B2D',
+              textMuted: '#64748B',
+              border: '#E2E8F0',
+              accent: '#2563EB',
+              danger: '#EF4444',
+              colorScheme: 'light'
+            },
+            violet: {
+              bg: '#F6F3FF',
+              surface: '#FFFFFF',
+              text: '#1E1633',
+              textMuted: '#6B7280',
+              border: '#E9D5FF',
+              accent: '#7C3AED',
+              danger: '#EF4444',
+              colorScheme: 'light'
+            },
+            darcula: {
+              bg: '#2B2B2B',
+              surface: '#3C3F41',
+              text: '#A9B7C6',
+              textMuted: '#808080',
+              border: '#4E5254',
+              accent: '#4B6EAF',
+              danger: '#E06C75',
+              colorScheme: 'dark'
+            },
+            forest: {
+              bg: '#F3F8F4',
+              surface: '#FFFFFF',
+              text: '#12261A',
+              textMuted: '#4B5563',
+              border: '#DCFCE7',
+              accent: '#15803D',
+              danger: '#DC2626',
+              colorScheme: 'light'
+            }
+          };
+
+          var activePreset = presets[theme.presetId] || presets.blue;
+          var root = document.documentElement;
+          root.style.setProperty('--bg', activePreset.bg);
+          root.style.setProperty('--surface', activePreset.surface);
+          root.style.setProperty('--text', activePreset.text);
+          root.style.setProperty('--text-muted', activePreset.textMuted);
+          root.style.setProperty('--border', activePreset.border);
+          root.style.setProperty('--accent', activePreset.accent);
+          root.style.setProperty('--danger', activePreset.danger);
+          root.style.setProperty('color-scheme', activePreset.colorScheme);
+
+          var btnBg = theme.buttonColor || activePreset.accent;
+          root.style.setProperty('--btn-bg', btnBg);
+
+          // Luminance calculation
+          function getLuminance(hex) {
+            var c = hex.replace('#', '');
+            if (c.length === 3) c = c.split('').map(function(x) { return x + x; }).join('');
+            var r = parseInt(c.substring(0, 2), 16) / 255;
+            var g = parseInt(c.substring(2, 4), 16) / 255;
+            var b = parseInt(c.substring(4, 6), 16) / 255;
+            var a = [r, g, b].map(function(v) {
+              return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+            });
+            return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+          }
+
+          var lum = getLuminance(btnBg);
+          var btnText = lum > 0.45 ? '#0F1B2D' : '#FFFFFF';
+          root.style.setProperty('--btn-text', btnText);
+          root.style.setProperty('--font-family', 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif');
+        } catch (e) {
+          // Fallback safely
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
